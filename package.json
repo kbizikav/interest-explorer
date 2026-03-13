@@ -1,0 +1,28 @@
+{
+  "name": "liquidity-explore",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cross-chain lending interest dashboard",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.1.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@bgd-labs/aave-address-book": "^4.44.22",
+    "next": "^16.1.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.39.0"
+  }
+}
