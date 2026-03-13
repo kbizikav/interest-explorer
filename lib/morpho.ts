@@ -116,7 +116,13 @@ async function fetchMorphoChainPositions(chainId: number, address: string) {
   const payload = (await response.json()) as MorphoResponse;
 
   if (payload.errors?.length) {
-    throw new Error(payload.errors.map((error) => error.message).join("; "));
+    const message = payload.errors.map((error) => error.message).join("; ");
+
+    if (message.includes("No results matching given parameters")) {
+      return null;
+    }
+
+    throw new Error(message);
   }
 
   return payload.data?.userByAddress;
@@ -230,4 +236,3 @@ export async function fetchMorphoPositions(address: string) {
 
   return { positions, errors };
 }
-

@@ -1,6 +1,11 @@
-import { AaveV3Arbitrum, AaveV3Base, AaveV3Ethereum, AaveV3Optimism, AaveV3Polygon } from "@bgd-labs/aave-address-book";
-import { IUiPoolDataProvider_ABI } from "@bgd-labs/aave-address-book/abis";
-import { formatUnits, getAddress, http, isAddress, createPublicClient } from "viem";
+import {
+  AaveV3Arbitrum,
+  AaveV3Base,
+  AaveV3Ethereum,
+  AaveV3Optimism,
+  AaveV3Polygon,
+} from "@bgd-labs/aave-address-book";
+import { createPublicClient, formatUnits, getAddress, http, isAddress } from "viem";
 
 import { SUPPORTED_CHAINS, type SupportedChain } from "@/lib/chains";
 import { getAlchemyKey } from "@/lib/env";
@@ -8,7 +13,85 @@ import { roundNumber } from "@/lib/format";
 import type { PositionRecord } from "@/lib/types";
 
 const RAY = 10n ** 27n;
-const PRICE_DECIMALS = 8;
+
+const POOL_ABI = [
+  {
+    type: "function",
+    name: "getReservesList",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "address[]" }],
+  },
+  {
+    type: "function",
+    name: "getReserveData",
+    stateMutability: "view",
+    inputs: [{ name: "asset", type: "address" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "configuration", type: "uint256" },
+          { name: "liquidityIndex", type: "uint128" },
+          { name: "currentLiquidityRate", type: "uint128" },
+          { name: "variableBorrowIndex", type: "uint128" },
+          { name: "currentVariableBorrowRate", type: "uint128" },
+          { name: "currentStableBorrowRate", type: "uint128" },
+          { name: "lastUpdateTimestamp", type: "uint40" },
+          { name: "id", type: "uint16" },
+          { name: "aTokenAddress", type: "address" },
+          { name: "stableDebtTokenAddress", type: "address" },
+          { name: "variableDebtTokenAddress", type: "address" },
+          { name: "interestRateStrategyAddress", type: "address" },
+          { name: "accruedToTreasury", type: "uint128" },
+          { name: "unbacked", type: "uint128" },
+          { name: "isolationModeTotalDebt", type: "uint128" },
+        ],
+      },
+    ],
+  },
+] as const;
+
+const ERC20_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "symbol",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "string" }],
+  },
+  {
+    type: "function",
+    name: "decimals",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint8" }],
+  },
+] as const;
+
+const ORACLE_ABI = [
+  {
+    type: "function",
+    name: "BASE_CURRENCY_UNIT",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getAssetPrice",
+    stateMutability: "view",
+    inputs: [{ name: "asset", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 
 type AaveMarket =
   | typeof AaveV3Ethereum
@@ -16,6 +99,26 @@ type AaveMarket =
   | typeof AaveV3Base
   | typeof AaveV3Polygon
   | typeof AaveV3Optimism;
+
+type ReserveData = {
+  liquidityIndex: bigint;
+  currentLiquidityRate: bigint;
+  lastUpdateTimestamp: number;
+  aTokenAddress: `0x${string}`;
+};
+
+type ReserveDataResult = {
+  liquidityIndex: bigint;
+  currentLiquidityRate: bigint;
+  lastUpdateTimestamp: bigint;
+  aTokenAddress: `0x${string}`;
+};
+
+type ActiveReserve = {
+  asset: `0x${string}`;
+  reserve: ReserveData;
+  balance: bigint;
+};
 
 function getAaveClient(chain: SupportedChain) {
   const alchemyKey = getAlchemyKey();
@@ -26,101 +129,158 @@ function getAaveClient(chain: SupportedChain) {
   });
 }
 
-function rayMul(value: bigint, ray: bigint) {
-  return (value * ray) / RAY;
-}
-
-function toUsd(
-  amount: bigint,
-  decimals: number,
-  priceInMarketReferenceCurrency: bigint,
-  marketReferenceCurrencyUnit: bigint,
-  marketReferenceCurrencyPriceInUsd: bigint,
-) {
+function toUsd(amount: bigint, decimals: number, price: bigint, baseCurrencyUnit: bigint) {
   const amountFloat = Number(formatUnits(amount, decimals));
-  const assetPriceRef = Number(priceInMarketReferenceCurrency) / Number(marketReferenceCurrencyUnit);
-  const referenceUsd = Number(marketReferenceCurrencyPriceInUsd) / 10 ** PRICE_DECIMALS;
+  const priceFloat = Number(price) / Number(baseCurrencyUnit);
 
-  return amountFloat * assetPriceRef * referenceUsd;
+  return amountFloat * priceFloat;
 }
 
 async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`): Promise<PositionRecord[]> {
   const client = getAaveClient(chain);
   const market: AaveMarket = chain.aaveMarket;
 
-  const [reservesResult, userReservesResult] = await Promise.all([
-    client.readContract({
-      address: market.UI_POOL_DATA_PROVIDER,
-      abi: IUiPoolDataProvider_ABI,
-      functionName: "getReservesData",
-      args: [market.POOL_ADDRESSES_PROVIDER],
+  const reserveAssets = await client.readContract({
+    address: market.POOL,
+    abi: POOL_ABI,
+    functionName: "getReservesList",
+  });
+
+  const [reserveResults, baseCurrencyUnitResult] = await Promise.all([
+    client.multicall({
+      contracts: reserveAssets.map((asset) => ({
+        address: market.POOL,
+        abi: POOL_ABI,
+        functionName: "getReserveData",
+        args: [asset],
+      })),
     }),
     client.readContract({
-      address: market.UI_POOL_DATA_PROVIDER,
-      abi: IUiPoolDataProvider_ABI,
-      functionName: "getUserReservesData",
-      args: [market.POOL_ADDRESSES_PROVIDER, address],
+      address: market.ORACLE,
+      abi: ORACLE_ABI,
+      functionName: "BASE_CURRENCY_UNIT",
     }),
   ]);
 
-  const [reserves, baseCurrencyInfo] = reservesResult;
-  const [userReserves] = userReservesResult;
+  const reserveMap = new Map<string, ReserveData>();
 
-  const reserveMap = new Map(
-    reserves.map((reserve) => [getAddress(reserve.underlyingAsset), reserve]),
-  );
-
-  const positions: PositionRecord[] = [];
-
-  for (const userReserve of userReserves) {
-    if (userReserve.scaledATokenBalance <= 0n) {
-      continue;
+  reserveResults.forEach((result, index) => {
+    if (result.status !== "success") {
+      return;
     }
 
-      const reserve = reserveMap.get(getAddress(userReserve.underlyingAsset));
+    const reserve = result.result as unknown as ReserveDataResult;
 
-      if (!reserve) {
-        continue;
-      }
+    reserveMap.set(getAddress(reserveAssets[index]), {
+      liquidityIndex: reserve.liquidityIndex,
+      currentLiquidityRate: reserve.currentLiquidityRate,
+      lastUpdateTimestamp: Number(reserve.lastUpdateTimestamp),
+      aTokenAddress: reserve.aTokenAddress,
+    });
+  });
 
-      const currentBalance = rayMul(userReserve.scaledATokenBalance, reserve.liquidityIndex);
-      const currentAsset = Number(formatUnits(currentBalance, Number(reserve.decimals)));
-      const currentUsd = toUsd(
-        currentBalance,
-        Number(reserve.decimals),
-        reserve.priceInMarketReferenceCurrency,
-        baseCurrencyInfo.marketReferenceCurrencyUnit,
-        baseCurrencyInfo.marketReferenceCurrencyPriceInUsd,
-      );
-      const annualRate = Number(reserve.liquidityRate) / Number(RAY);
-      const estimatedDailyInterestAsset = currentAsset * annualRate / 365;
-      const estimatedDailyInterestUsd = currentUsd * annualRate / 365;
+  const balanceResults = await client.multicall({
+    contracts: reserveAssets
+      .map((asset) => reserveMap.get(getAddress(asset)))
+      .filter((reserve): reserve is ReserveData => reserve !== undefined)
+      .map((reserve) => ({
+        address: reserve.aTokenAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address],
+      })),
+  });
 
-      positions.push({
-        chain: chain.name,
-        protocol: "aave-v3" as const,
-        marketId: `${chain.slug}:${reserve.aTokenAddress}`,
-        marketName: reserve.name,
-        assetAddress: reserve.underlyingAsset,
-        assetSymbol: reserve.symbol,
-        principalAsset: null,
-        principalUsd: null,
-        currentAsset: roundNumber(currentAsset, 6) ?? 0,
-        currentUsd: roundNumber(currentUsd, 2) ?? 0,
-        accruedInterestAsset: null,
-        accruedInterestUsd: null,
-        rateType: "apr" as const,
-        annualRate: roundNumber(annualRate, 6),
-        estimatedDailyInterestAsset: roundNumber(estimatedDailyInterestAsset, 8),
-        estimatedDailyInterestUsd: roundNumber(estimatedDailyInterestUsd, 4),
-        sourceTimestamp: new Date(Number(reserve.lastUpdateTimestamp) * 1000).toISOString(),
-        warnings: [
-          "Aave principal is not reconstructed in Phase 1, so accrued interest is unavailable.",
-        ],
-      });
+  const activeReserves: ActiveReserve[] = reserveAssets.flatMap((asset, index) => {
+    const reserve = reserveMap.get(getAddress(asset));
+    const balance = balanceResults[index];
+    const balanceValue = balance?.status === "success" ? (balance.result as unknown as bigint) : null;
+
+    if (!reserve || balanceValue === null || balanceValue <= 0n) {
+      return [];
     }
 
-  return positions;
+    return [
+      {
+        asset,
+        reserve,
+        balance: balanceValue,
+      },
+    ];
+  });
+
+  if (activeReserves.length === 0) {
+    return [];
+  }
+
+  const [symbolResults, decimalsResults, priceResults] = await Promise.all([
+    client.multicall({
+      contracts: activeReserves.map((item) => ({
+        address: item.asset,
+        abi: ERC20_ABI,
+        functionName: "symbol",
+      })),
+    }),
+    client.multicall({
+      contracts: activeReserves.map((item) => ({
+        address: item.asset,
+        abi: ERC20_ABI,
+        functionName: "decimals",
+      })),
+    }),
+    client.multicall({
+      contracts: activeReserves.map((item) => ({
+        address: market.ORACLE,
+        abi: ORACLE_ABI,
+        functionName: "getAssetPrice",
+        args: [item.asset],
+      })),
+    }),
+  ]);
+
+  return activeReserves.map((item, index) => {
+    const symbol = symbolResults[index];
+    const decimals = decimalsResults[index];
+    const price = priceResults[index];
+
+    if (
+      symbol?.status !== "success" ||
+      decimals?.status !== "success" ||
+      price?.status !== "success"
+    ) {
+      throw new Error(`Failed to load Aave metadata for ${item.asset} on ${chain.name}.`);
+    }
+
+    const symbolValue = symbol.result as unknown as string;
+    const decimalsValue = Number(decimals.result as unknown as number | bigint);
+    const priceValue = price.result as unknown as bigint;
+    const currentAsset = Number(formatUnits(item.balance, decimalsValue));
+    const currentUsd = toUsd(item.balance, decimalsValue, priceValue, baseCurrencyUnitResult);
+    const annualRate = Number(item.reserve.currentLiquidityRate) / Number(RAY);
+
+    return {
+      chain: chain.name,
+      protocol: "aave-v3" as const,
+      marketId: `${chain.slug}:${item.reserve.aTokenAddress}`,
+      marketName: `Aave ${symbolValue}`,
+      assetAddress: item.asset,
+      assetSymbol: symbolValue,
+      principalAsset: null,
+      principalUsd: null,
+      currentAsset: roundNumber(currentAsset, 6) ?? 0,
+      currentUsd: roundNumber(currentUsd, 2) ?? 0,
+      accruedInterestAsset: null,
+      accruedInterestUsd: null,
+      rateType: "apr" as const,
+      annualRate: roundNumber(annualRate, 6),
+      estimatedDailyInterestAsset: roundNumber(currentAsset * annualRate / 365, 8),
+      estimatedDailyInterestUsd: roundNumber(currentUsd * annualRate / 365, 4),
+      sourceTimestamp: new Date(item.reserve.lastUpdateTimestamp * 1000).toISOString(),
+      warnings: [
+        "Aave principal is not reconstructed in Phase 1, so accrued interest is unavailable.",
+      ],
+    };
+  });
 }
 
 export async function fetchAavePositions(address: string) {
