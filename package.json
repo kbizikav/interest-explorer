@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@bgd-labs/aave-address-book": "^4.44.22",
+    "@vercel/analytics": "^2.0.1",
     "next": "^16.1.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
