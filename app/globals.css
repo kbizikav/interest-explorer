@@ -361,6 +361,28 @@ tbody td:first-child {
   font-weight: 500;
 }
 
+.protocol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.protocol-link {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  color: var(--brand);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.protocol-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
 .positive {
   color: var(--positive);
 }

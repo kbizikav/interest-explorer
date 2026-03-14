@@ -1,9 +1,40 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Fragment, useState } from "react";
 
 import { formatCompactUsd, formatPercent, formatTokenAmount } from "@/lib/format";
 import type { PositionRecord, PositionsResponse } from "@/lib/types";
+
+const EXAMPLE_ADDRESSES = [
+  "0x560B3A85Af1cEF113BB60105d0Cf21e1d05F91d4",
+  "0x28966Ce36d0F25858dc5d10DfC2829F05C332C49",
+  "0x60b0e610d3A7b754fd8CB71c54d41B4D1C10Ff37",
+  "0xA8F94Ec342CE47399B19Ae5CACfBaFdA25058882",
+] as const;
+
+function getProtocolUrl(protocol: PositionRecord["protocol"]) {
+  switch (protocol) {
+    case "aave-v3":
+      return "https://app.aave.com/";
+    case "morpho":
+      return "https://app.morpho.org/";
+    case "compound-v3":
+      return "https://app.compound.finance/";
+  }
+}
+
+function ProtocolLink({ position }: { position: PositionRecord }) {
+  return (
+    <a
+      className="protocol-link"
+      href={getProtocolUrl(position.protocol)}
+      rel="noreferrer"
+      target="_blank"
+    >
+      Open protocol
+    </a>
+  );
+}
 
 function SummaryCard({
   label,
@@ -28,6 +59,7 @@ function PositionRow({ position }: { position: PositionRecord }) {
       <td>
         <div className="stack">
           <span className="pill">{position.protocol}</span>
+          <ProtocolLink position={position} />
         </div>
       </td>
       <td>
@@ -69,8 +101,13 @@ function PositionCard({ position }: { position: PositionRecord }) {
     <div className="position-card">
       <div className="position-card-header">
         <div className="position-card-header-left">
-          <strong>{position.marketName}</strong>
-          <span className="pill">{position.protocol}</span>
+          <div className="stack">
+            <strong>{position.marketName}</strong>
+            <div className="protocol-row">
+              <span className="pill">{position.protocol}</span>
+              <ProtocolLink position={position} />
+            </div>
+          </div>
         </div>
         <span className="muted">{position.assetSymbol}</span>
       </div>
@@ -201,7 +238,9 @@ export default function HomePage() {
             className="try-example"
             type="button"
             onClick={() => {
-              setAddress("0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503");
+              const randomAddress =
+                EXAMPLE_ADDRESSES[Math.floor(Math.random() * EXAMPLE_ADDRESSES.length)];
+              setAddress(randomAddress);
               // auto-submit
               setTimeout(() => {
                 document.querySelector<HTMLFormElement>(".address-form")?.requestSubmit();
@@ -267,14 +306,14 @@ export default function HomePage() {
                     </thead>
                     <tbody>
                       {groups.map((group) => (
-                        <>
-                          <tr key={`chain-${group.chain}`} className="chain-group-header">
+                        <Fragment key={group.chain}>
+                          <tr className="chain-group-header">
                             <td colSpan={7}>{group.chain}</td>
                           </tr>
                           {group.positions.map((position) => (
                             <PositionRow key={position.marketId} position={position} />
                           ))}
-                        </>
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>
