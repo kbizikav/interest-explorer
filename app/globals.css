@@ -110,12 +110,38 @@ input {
   max-width: 14ch;
 }
 
-.hero-copy {
-  margin: 0;
-  max-width: 54ch;
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.65;
+/* ── Hero protocol icons ── */
+
+.hero-protocols {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hero-protocol-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-protocol-group img {
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.hero-protocol-group img:hover {
+  transform: scale(1.18);
+}
+
+.hero-protocols-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.hero.compact .hero-protocols {
+  display: none;
 }
 
 .address-form {
@@ -450,12 +476,127 @@ tbody td:first-child {
   font-weight: 600;
 }
 
+/* ── Try example button ── */
+
+.try-example {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.try-example:hover {
+  color: var(--text);
+}
+
+.try-example:hover .try-example-icon {
+  transform: translateX(3px);
+}
+
+.try-example-icon {
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+/* ── Feature cards ── */
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.feature-card {
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--positive));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.feature-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--brand-soft), rgba(21, 94, 99, 0.08));
+  color: var(--brand);
+  margin-bottom: 18px;
+}
+
+.feature-title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.feature-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+
 /* ── Responsive ── */
 
 @media (max-width: 900px) {
   .summary-grid,
   .skeleton-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Hide table, show cards on tablet/mobile widths where the table becomes cramped */
+  .table-panel {
+    display: none;
+  }
+
+  .position-cards {
+    display: grid;
+    gap: 10px;
   }
 }
 
@@ -488,15 +629,5 @@ tbody td:first-child {
 
   .card-value {
     font-size: 1.3rem;
-  }
-
-  /* Hide table, show cards on mobile */
-  .table-panel {
-    display: none;
-  }
-
-  .position-cards {
-    display: grid;
-    gap: 10px;
   }
 }

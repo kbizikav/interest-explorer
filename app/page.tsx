@@ -166,12 +166,23 @@ export default function HomePage() {
         <div className="hero-intro">
           <div className="stack">
             <p className="eyebrow">LendScope</p>
-            <h1>Track lending positions by wallet.</h1>
+            <h1>How much are you earning?</h1>
           </div>
-          <p className="hero-copy">
-            Enter an EVM address to aggregate supply positions across
-            Aave v3, Morpho, and Compound v3 on Ethereum, Arbitrum, Base, Polygon, and Optimism.
-          </p>
+          <div className="hero-protocols">
+            <div className="hero-protocol-group">
+              <img src="/logos/aave.svg" alt="Aave" width="28" height="28" />
+              <img src="/logos/morpho.svg" alt="Morpho" width="28" height="28" />
+              <img src="/logos/compound.svg" alt="Compound" width="28" height="28" />
+            </div>
+            <span className="hero-protocols-divider" />
+            <div className="hero-protocol-group">
+              <img src="/logos/ethereum.png" alt="Ethereum" width="22" height="22" />
+              <img src="/logos/arbitrum.png" alt="Arbitrum" width="22" height="22" />
+              <img src="/logos/base.png" alt="Base" width="22" height="22" />
+              <img src="/logos/polygon.png" alt="Polygon" width="22" height="22" />
+              <img src="/logos/optimism.png" alt="Optimism" width="22" height="22" />
+            </div>
+          </div>
         </div>
         <form className="address-form" onSubmit={handleSubmit}>
           <input
@@ -185,6 +196,24 @@ export default function HomePage() {
             {loading ? "Loading…" : hasData ? "Refresh" : "Analyze"}
           </button>
         </form>
+        {!hasData && !loading ? (
+          <button
+            className="try-example"
+            type="button"
+            onClick={() => {
+              setAddress("0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503");
+              // auto-submit
+              setTimeout(() => {
+                document.querySelector<HTMLFormElement>(".address-form")?.requestSubmit();
+              }, 0);
+            }}
+          >
+            <span className="try-example-icon">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 2L10.5 7L5.5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
+            Try with an example address
+          </button>
+        ) : null}
       </section>
 
       {error ? (
@@ -273,10 +302,31 @@ export default function HomePage() {
       ) : null}
 
       {!data && !loading && !error ? (
-        <section className="content-grid">
-          <div className="notice">
-            Enter a wallet address to view lending positions and yield across supported chains.
+        <section className="content-grid fade-in">
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="10" cy="14" r="8" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="14" r="8" stroke="currentColor" strokeWidth="2"/></svg>
+              </div>
+              <h3 className="feature-title">Cross-chain aggregation</h3>
+              <p className="feature-desc">Scan Ethereum, Arbitrum, Base, Polygon, and Optimism in a single query.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 8H24V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <h3 className="feature-title">Accrued interest tracking</h3>
+              <p className="feature-desc">Automatically calculate real-time interest earnings from on-chain principal deltas.</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="6" width="22" height="16" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M3 12H25" stroke="currentColor" strokeWidth="2"/><circle cx="19" cy="18" r="2" fill="currentColor"/></svg>
+              </div>
+              <h3 className="feature-title">Multi-protocol support</h3>
+              <p className="feature-desc">Unified view of positions across Aave v3, Morpho, and Compound v3.</p>
+            </div>
           </div>
+
         </section>
       ) : null}
     </main>
