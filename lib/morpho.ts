@@ -1,10 +1,12 @@
 import { isAddress } from "viem";
 
 import { SUPPORTED_CHAINS } from "@/lib/chains";
+import { withTimeout } from "@/lib/async";
 import { roundNumber } from "@/lib/format";
 import type { PositionRecord } from "@/lib/types";
 
 const MORPHO_ENDPOINT = "https://api.morpho.org/graphql";
+const CHAIN_TIMEOUT_MS = 8_000;
 
 const MORPHO_QUERY = `
   query MorphoPositions($address: String!, $chainId: Int!) {
@@ -92,11 +94,14 @@ type MorphoResponse = {
 };
 
 async function fetchMorphoChainPositions(chainId: number, address: string) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CHAIN_TIMEOUT_MS);
   const response = await fetch(MORPHO_ENDPOINT, {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
+    signal: controller.signal,
     body: JSON.stringify({
       query: MORPHO_QUERY,
       variables: {
@@ -107,6 +112,8 @@ async function fetchMorphoChainPositions(chainId: number, address: string) {
     next: {
       revalidate: 300,
     },
+  }).finally(() => {
+    clearTimeout(timeoutId);
   });
 
   if (!response.ok) {
@@ -135,7 +142,11 @@ export async function fetchMorphoPositions(address: string) {
 
   const results = await Promise.allSettled(
     SUPPORTED_CHAINS.map(async (chain) => {
-      const data = await fetchMorphoChainPositions(chain.id, address);
+      const data = await withTimeout(
+        fetchMorphoChainPositions(chain.id, address),
+        CHAIN_TIMEOUT_MS,
+        `Morpho adapter timed out on ${chain.name}.`,
+      );
       const positions: PositionRecord[] = [];
 
       for (const marketPosition of data?.marketPositions ?? []) {

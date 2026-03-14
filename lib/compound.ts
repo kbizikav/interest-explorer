@@ -1,6 +1,7 @@
 import { createPublicClient, formatUnits, getAddress, http, isAddress } from "viem";
 
 import { SUPPORTED_CHAINS, type SupportedChain } from "@/lib/chains";
+import { withTimeout } from "@/lib/async";
 import { getOptionalAlchemyKey } from "@/lib/env";
 import { roundNumber } from "@/lib/format";
 import type { PositionRecord } from "@/lib/types";
@@ -8,6 +9,7 @@ import type { PositionRecord } from "@/lib/types";
 const FACTOR_SCALE = 10n ** 18n;
 const PRICE_SCALE = 10n ** 8n;
 const SECONDS_PER_YEAR = 31_536_000;
+const CHAIN_TIMEOUT_MS = 8_000;
 
 const COMET_ABI = [
   {
@@ -141,7 +143,7 @@ const COMPOUND_MARKETS: CompoundMarket[] = [
 function getCompoundClient(chain: SupportedChain) {
   return createPublicClient({
     chain: chain.viemChain,
-    transport: http(chain.rpcUrl(getOptionalAlchemyKey())),
+    transport: http(chain.rpcUrl(getOptionalAlchemyKey()), { timeout: CHAIN_TIMEOUT_MS }),
   });
 }
 
@@ -261,7 +263,11 @@ export async function fetchCompoundPositions(address: string) {
         return {
           chain: chain.name,
           protocol: "compound-v3" as const,
-          positions: await fetchCompoundChainPositions(chain, checksumAddress),
+          positions: await withTimeout(
+            fetchCompoundChainPositions(chain, checksumAddress),
+            CHAIN_TIMEOUT_MS,
+            `Compound adapter timed out on ${chain.name}.`,
+          ),
         };
       } catch (error) {
         throw Object.assign(

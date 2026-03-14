@@ -6,6 +6,8 @@ import { fetchAavePositions } from "@/lib/aave";
 import { fetchCompoundPositions } from "@/lib/compound";
 import { fetchMorphoPositions } from "@/lib/morpho";
 
+export const runtime = "nodejs";
+
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address");
 

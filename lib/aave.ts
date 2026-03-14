@@ -8,11 +8,13 @@ import {
 import { createPublicClient, formatUnits, getAddress, http, isAddress } from "viem";
 
 import { SUPPORTED_CHAINS, type SupportedChain } from "@/lib/chains";
+import { withTimeout } from "@/lib/async";
 import { getOptionalAlchemyKey } from "@/lib/env";
 import { roundNumber } from "@/lib/format";
 import type { PositionRecord } from "@/lib/types";
 
 const RAY = 10n ** 27n;
+const CHAIN_TIMEOUT_MS = 8_000;
 
 const POOL_ABI = [
   {
@@ -125,7 +127,7 @@ function getAaveClient(chain: SupportedChain) {
 
   return createPublicClient({
     chain: chain.viemChain,
-    transport: http(chain.rpcUrl(alchemyKey)),
+    transport: http(chain.rpcUrl(alchemyKey), { timeout: CHAIN_TIMEOUT_MS }),
   });
 }
 
@@ -295,7 +297,11 @@ export async function fetchAavePositions(address: string) {
         return {
           chain: chain.name,
           protocol: "aave-v3" as const,
-          positions: await fetchChainPositions(chain, checksumAddress),
+          positions: await withTimeout(
+            fetchChainPositions(chain, checksumAddress),
+            CHAIN_TIMEOUT_MS,
+            `Aave adapter timed out on ${chain.name}.`,
+          ),
         };
       } catch (error) {
         throw Object.assign(
