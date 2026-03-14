@@ -1,4 +1,4 @@
-export type ProtocolName = "aave-v3" | "morpho";
+export type ProtocolName = "aave-v3" | "morpho" | "compound-v3";
 
 export type PositionRecord = {
   chain: string;
@@ -37,4 +37,3 @@ export type PositionsResponse = {
   }[];
   generatedAt: string;
 };
-

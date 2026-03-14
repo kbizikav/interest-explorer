@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Lending Interest Dashboard",
-  description: "Cross-chain lending interest dashboard for Aave v3 and Morpho.",
+  description: "Cross-chain lending interest dashboard for Aave v3, Morpho, and Compound v3.",
 };
 
 export default function RootLayout({

@@ -20,7 +20,7 @@ export type SupportedChain = {
   slug: "ethereum" | "arbitrum" | "base" | "polygon" | "optimism";
   name: string;
   viemChain: Chain;
-  rpcUrl: (alchemyKey: string) => string;
+  rpcUrl: (alchemyKey?: string) => string;
   aaveMarket:
     | typeof AaveV3Ethereum
     | typeof AaveV3Arbitrum
@@ -35,7 +35,8 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     slug: "ethereum",
     name: "Ethereum",
     viemChain: mainnet,
-    rpcUrl: (alchemyKey) => `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    rpcUrl: (alchemyKey) =>
+      alchemyKey ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}` : mainnet.rpcUrls.default.http[0],
     aaveMarket: AaveV3Ethereum,
   },
   {
@@ -43,7 +44,8 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     slug: "arbitrum",
     name: "Arbitrum",
     viemChain: arbitrum,
-    rpcUrl: (alchemyKey) => `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    rpcUrl: (alchemyKey) =>
+      alchemyKey ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}` : arbitrum.rpcUrls.default.http[0],
     aaveMarket: AaveV3Arbitrum,
   },
   {
@@ -51,7 +53,8 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     slug: "base",
     name: "Base",
     viemChain: base,
-    rpcUrl: (alchemyKey) => `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    rpcUrl: (alchemyKey) =>
+      alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : base.rpcUrls.default.http[0],
     aaveMarket: AaveV3Base,
   },
   {
@@ -59,7 +62,8 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     slug: "polygon",
     name: "Polygon",
     viemChain: polygon,
-    rpcUrl: (alchemyKey) => `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    rpcUrl: (alchemyKey) =>
+      alchemyKey ? `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}` : polygon.rpcUrls.default.http[0],
     aaveMarket: AaveV3Polygon,
   },
   {
@@ -67,7 +71,8 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
     slug: "optimism",
     name: "Optimism",
     viemChain: optimism,
-    rpcUrl: (alchemyKey) => `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    rpcUrl: (alchemyKey) =>
+      alchemyKey ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}` : optimism.rpcUrls.default.http[0],
     aaveMarket: AaveV3Optimism,
   },
 ];
@@ -75,4 +80,3 @@ export const SUPPORTED_CHAINS: SupportedChain[] = [
 export function getSupportedChain(chainId: number) {
   return SUPPORTED_CHAINS.find((chain) => chain.id === chainId);
 }
-

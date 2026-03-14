@@ -8,3 +8,6 @@ export function getAlchemyKey() {
   return key;
 }
 
+export function getOptionalAlchemyKey() {
+  return process.env.ALCHEMY_KEY;
+}

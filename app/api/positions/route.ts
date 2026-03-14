@@ -3,6 +3,7 @@ import { isAddress } from "viem";
 
 import { buildResponse } from "@/lib/aggregate";
 import { fetchAavePositions } from "@/lib/aave";
+import { fetchCompoundPositions } from "@/lib/compound";
 import { fetchMorphoPositions } from "@/lib/morpho";
 
 export async function GET(request: NextRequest) {
@@ -16,15 +17,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [aave, morpho] = await Promise.all([
+    const [aave, morpho, compound] = await Promise.all([
       fetchAavePositions(address),
       fetchMorphoPositions(address),
+      fetchCompoundPositions(address),
     ]);
 
     return NextResponse.json(
-      buildResponse(address, [...aave.positions, ...morpho.positions], [
+      buildResponse(address, [...aave.positions, ...morpho.positions, ...compound.positions], [
         ...aave.errors,
         ...morpho.errors,
+        ...compound.errors,
       ]),
     );
   } catch (error) {
@@ -36,4 +39,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -170,7 +170,7 @@ export default function HomePage() {
           </div>
           <p className="hero-copy">
             Enter an EVM address to aggregate supply positions across
-            Aave v3 and Morpho on Ethereum, Arbitrum, Base, Polygon, and Optimism.
+            Aave v3, Morpho, and Compound v3 on Ethereum, Arbitrum, Base, Polygon, and Optimism.
           </p>
         </div>
         <form className="address-form" onSubmit={handleSubmit}>

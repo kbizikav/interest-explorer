@@ -8,7 +8,7 @@ import {
 import { createPublicClient, formatUnits, getAddress, http, isAddress } from "viem";
 
 import { SUPPORTED_CHAINS, type SupportedChain } from "@/lib/chains";
-import { getAlchemyKey } from "@/lib/env";
+import { getOptionalAlchemyKey } from "@/lib/env";
 import { roundNumber } from "@/lib/format";
 import type { PositionRecord } from "@/lib/types";
 
@@ -121,7 +121,7 @@ type ActiveReserve = {
 };
 
 function getAaveClient(chain: SupportedChain) {
-  const alchemyKey = getAlchemyKey();
+  const alchemyKey = getOptionalAlchemyKey();
 
   return createPublicClient({
     chain: chain.viemChain,
