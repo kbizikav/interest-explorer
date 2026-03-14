@@ -301,7 +301,7 @@ function HomePageInner() {
               <path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M18 8H24V14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            {t.appName}
+            <span>{t.appName}</span>
           </button>
           <form className="site-header-form" onSubmit={handleSubmit}>
             <input
@@ -336,7 +336,7 @@ function HomePageInner() {
               <path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M18 8H24V14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            {t.appName}
+            <span>{t.appName}</span>
           </span>
           <LangSwitcher locale={locale} />
         </header>
