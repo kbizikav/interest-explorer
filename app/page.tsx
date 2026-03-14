@@ -165,8 +165,8 @@ export default function HomePage() {
       <section className={`hero${hasData ? " compact" : ""}`}>
         <div className="hero-intro">
           <div className="stack">
-            <p className="eyebrow">Cross-Chain Lending View</p>
-            <h1>Find lending yield by wallet.</h1>
+            <p className="eyebrow">LendScope</p>
+            <h1>Track lending positions by wallet.</h1>
           </div>
           <p className="hero-copy">
             Enter an EVM address to aggregate supply positions across
