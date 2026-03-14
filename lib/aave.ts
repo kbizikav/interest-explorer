@@ -5,7 +5,7 @@ import {
   AaveV3Optimism,
   AaveV3Polygon,
 } from "@bgd-labs/aave-address-book";
-import { createPublicClient, formatUnits, getAddress, http, isAddress } from "viem";
+import { createPublicClient, formatUnits, getAddress, http, isAddress, type PublicClient } from "viem";
 
 import { SUPPORTED_CHAINS, type SupportedChain } from "@/lib/chains";
 import { withTimeout } from "@/lib/async";
@@ -95,6 +95,32 @@ const ORACLE_ABI = [
   },
 ] as const;
 
+const POOL_EVENTS_ABI = [
+  {
+    type: "event",
+    name: "Supply",
+    anonymous: false,
+    inputs: [
+      { name: "reserve", type: "address", indexed: true },
+      { name: "user", type: "address", indexed: false },
+      { name: "onBehalfOf", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "referralCode", type: "uint16", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "Withdraw",
+    anonymous: false,
+    inputs: [
+      { name: "reserve", type: "address", indexed: true },
+      { name: "user", type: "address", indexed: true },
+      { name: "to", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+    ],
+  },
+] as const;
+
 type AaveMarket =
   | typeof AaveV3Ethereum
   | typeof AaveV3Arbitrum
@@ -122,6 +148,11 @@ type ActiveReserve = {
   balance: bigint;
 };
 
+type PrincipalBreakdown = {
+  principalByAsset: Map<string, bigint | null>;
+  warningsByAsset: Map<string, string[]>;
+};
+
 function getAaveClient(chain: SupportedChain) {
   const alchemyKey = getOptionalAlchemyKey();
 
@@ -136,6 +167,72 @@ function toUsd(amount: bigint, decimals: number, price: bigint, baseCurrencyUnit
   const priceFloat = Number(price) / Number(baseCurrencyUnit);
 
   return amountFloat * priceFloat;
+}
+
+async function fetchPrincipalBreakdown(
+  client: PublicClient,
+  chain: SupportedChain,
+  market: AaveMarket,
+  activeReserves: ActiveReserve[],
+  address: `0x${string}`,
+): Promise<PrincipalBreakdown> {
+  const principalEntries = await Promise.all(
+    activeReserves.map(async (item) => {
+      const [supplyLogs, withdrawLogs] = await Promise.all([
+        client.getLogs({
+          address: market.POOL,
+          event: POOL_EVENTS_ABI[0],
+          args: {
+            reserve: item.asset,
+            onBehalfOf: address,
+          },
+          fromBlock: 0n,
+          toBlock: "latest",
+        }),
+        client.getLogs({
+          address: market.POOL,
+          event: POOL_EVENTS_ABI[1],
+          args: {
+            reserve: item.asset,
+            user: address,
+          },
+          fromBlock: 0n,
+          toBlock: "latest",
+        }),
+      ]);
+
+      const supplied = supplyLogs.reduce((total, log) => total + (log.args.amount ?? 0n), 0n);
+      const withdrawn = withdrawLogs.reduce((total, log) => total + (log.args.amount ?? 0n), 0n);
+      const principal = supplied - withdrawn;
+      const warnings: string[] = [];
+
+      if (principal < 0n) {
+        warnings.push(
+          `Aave principal reconstruction became negative on ${chain.name}; this position may include delegated activity or transfers.`,
+        );
+        return [getAddress(item.asset), { principal: null, warnings }] as const;
+      }
+
+      if (principal > item.balance) {
+        warnings.push(
+          "Aave principal reconstructed from pool events exceeds the current balance; aToken transfers are not yet included.",
+        );
+        return [getAddress(item.asset), { principal: null, warnings }] as const;
+      }
+
+      return [getAddress(item.asset), { principal, warnings }] as const;
+    }),
+  );
+
+  const principalByAsset = new Map<string, bigint | null>();
+  const warningsByAsset = new Map<string, string[]>();
+
+  for (const [asset, result] of principalEntries) {
+    principalByAsset.set(asset, result.principal);
+    warningsByAsset.set(asset, result.warnings);
+  }
+
+  return { principalByAsset, warningsByAsset };
 }
 
 async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`): Promise<PositionRecord[]> {
@@ -215,30 +312,49 @@ async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`
     return [];
   }
 
-  const [symbolResults, decimalsResults, priceResults] = await Promise.all([
-    client.multicall({
-      contracts: activeReserves.map((item) => ({
-        address: item.asset,
-        abi: ERC20_ABI,
-        functionName: "symbol",
-      })),
-    }),
-    client.multicall({
-      contracts: activeReserves.map((item) => ({
-        address: item.asset,
-        abi: ERC20_ABI,
-        functionName: "decimals",
-      })),
-    }),
-    client.multicall({
-      contracts: activeReserves.map((item) => ({
-        address: market.ORACLE,
-        abi: ORACLE_ABI,
-        functionName: "getAssetPrice",
-        args: [item.asset],
-      })),
-    }),
-  ]);
+  const canReconstructPrincipal = Boolean(getOptionalAlchemyKey());
+  const defaultBreakdown: PrincipalBreakdown = {
+    principalByAsset: new Map(activeReserves.map((item) => [getAddress(item.asset), null])),
+    warningsByAsset: new Map(
+      activeReserves.map((item) => [
+        getAddress(item.asset),
+        canReconstructPrincipal
+          ? []
+          : [
+              "Aave accrued interest needs historical event logs from an RPC with broad eth_getLogs support. Set ALCHEMY_KEY to enable it.",
+            ],
+      ]),
+    ),
+  };
+
+  const [{ principalByAsset, warningsByAsset }, symbolResults, decimalsResults, priceResults] =
+    await Promise.all([
+      canReconstructPrincipal
+        ? fetchPrincipalBreakdown(client, chain, market, activeReserves, address)
+        : Promise.resolve(defaultBreakdown),
+      client.multicall({
+        contracts: activeReserves.map((item) => ({
+          address: item.asset,
+          abi: ERC20_ABI,
+          functionName: "symbol",
+        })),
+      }),
+      client.multicall({
+        contracts: activeReserves.map((item) => ({
+          address: item.asset,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        })),
+      }),
+      client.multicall({
+        contracts: activeReserves.map((item) => ({
+          address: market.ORACLE,
+          abi: ORACLE_ABI,
+          functionName: "getAssetPrice",
+          args: [item.asset],
+        })),
+      }),
+    ]);
 
   return activeReserves.map((item, index) => {
     const symbol = symbolResults[index];
@@ -256,8 +372,17 @@ async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`
     const symbolValue = symbol.result as unknown as string;
     const decimalsValue = Number(decimals.result as unknown as number | bigint);
     const priceValue = price.result as unknown as bigint;
+    const assetKey = getAddress(item.asset);
+    const principalRaw = principalByAsset.get(assetKey) ?? null;
     const currentAsset = Number(formatUnits(item.balance, decimalsValue));
     const currentUsd = toUsd(item.balance, decimalsValue, priceValue, baseCurrencyUnitResult);
+    const principalAsset =
+      principalRaw === null ? null : Number(formatUnits(principalRaw, decimalsValue));
+    const principalUsd =
+      principalRaw === null ? null : toUsd(principalRaw, decimalsValue, priceValue, baseCurrencyUnitResult);
+    const accruedInterestAsset =
+      principalAsset === null ? null : currentAsset - principalAsset;
+    const accruedInterestUsd = principalUsd === null ? null : currentUsd - principalUsd;
     const annualRate = Number(item.reserve.currentLiquidityRate) / Number(RAY);
 
     return {
@@ -267,18 +392,18 @@ async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`
       marketName: `Aave ${symbolValue}`,
       assetAddress: item.asset,
       assetSymbol: symbolValue,
-      principalAsset: null,
-      principalUsd: null,
+      principalAsset: roundNumber(principalAsset, 6),
+      principalUsd: roundNumber(principalUsd, 2),
       currentAsset: roundNumber(currentAsset, 6) ?? 0,
       currentUsd: roundNumber(currentUsd, 2) ?? 0,
-      accruedInterestAsset: null,
-      accruedInterestUsd: null,
+      accruedInterestAsset: roundNumber(accruedInterestAsset, 6),
+      accruedInterestUsd: roundNumber(accruedInterestUsd, 2),
       rateType: "apr" as const,
       annualRate: roundNumber(annualRate, 6),
       estimatedDailyInterestAsset: roundNumber(currentAsset * annualRate / 365, 8),
       estimatedDailyInterestUsd: roundNumber(currentUsd * annualRate / 365, 4),
       sourceTimestamp: new Date(item.reserve.lastUpdateTimestamp * 1000).toISOString(),
-      warnings: [],
+      warnings: warningsByAsset.get(assetKey) ?? [],
     };
   });
 }

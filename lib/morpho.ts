@@ -1,4 +1,4 @@
-import { isAddress } from "viem";
+import { formatUnits, isAddress } from "viem";
 
 import { SUPPORTED_CHAINS } from "@/lib/chains";
 import { withTimeout } from "@/lib/async";
@@ -17,6 +17,7 @@ const MORPHO_QUERY = `
           loanAsset {
             address
             symbol
+            decimals
           }
           state {
             supplyApy
@@ -34,6 +35,7 @@ const MORPHO_QUERY = `
           asset {
             address
             symbol
+            decimals
           }
           state {
             netApy
@@ -59,6 +61,7 @@ type MorphoResponse = {
           loanAsset: {
             address: string;
             symbol: string;
+            decimals: number;
           };
           state: {
             supplyApy: number | null;
@@ -76,6 +79,7 @@ type MorphoResponse = {
           asset: {
             address: string;
             symbol: string;
+            decimals: number;
           };
           state: {
             netApy: number | null;
@@ -92,6 +96,14 @@ type MorphoResponse = {
   };
   errors?: Array<{ message: string }>;
 };
+
+function toTokenAmount(value: string | number | null, decimals: number) {
+  if (value === null) {
+    return 0;
+  }
+
+  return Number(formatUnits(BigInt(value), decimals));
+}
 
 async function fetchMorphoChainPositions(chainId: number, address: string) {
   const controller = new AbortController();
@@ -150,7 +162,8 @@ export async function fetchMorphoPositions(address: string) {
       const positions: PositionRecord[] = [];
 
       for (const marketPosition of data?.marketPositions ?? []) {
-        const currentAsset = Number(marketPosition.state.supplyAssets ?? "0");
+        const decimals = marketPosition.market.loanAsset.decimals;
+        const currentAsset = toTokenAmount(marketPosition.state.supplyAssets, decimals);
         const currentUsd = marketPosition.state.supplyAssetsUsd ?? 0;
         const annualRate = marketPosition.market.state.supplyApy;
 
@@ -183,9 +196,11 @@ export async function fetchMorphoPositions(address: string) {
       }
 
       for (const vaultPosition of data?.vaultPositions ?? []) {
-        const currentAsset = Number(vaultPosition.state.assets ?? "0");
+        const decimals = vaultPosition.vault.asset.decimals;
+        const currentAsset = toTokenAmount(vaultPosition.state.assets, decimals);
         const currentUsd = vaultPosition.state.assetsUsd ?? 0;
-        const accruedInterestAsset = vaultPosition.state.pnl === null ? null : Number(vaultPosition.state.pnl);
+        const accruedInterestAsset =
+          vaultPosition.state.pnl === null ? null : toTokenAmount(vaultPosition.state.pnl, decimals);
         const accruedInterestUsd = vaultPosition.state.pnlUsd;
         const principalAsset =
           accruedInterestAsset === null ? null : currentAsset - accruedInterestAsset;
