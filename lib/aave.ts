@@ -278,9 +278,7 @@ async function fetchChainPositions(chain: SupportedChain, address: `0x${string}`
       estimatedDailyInterestAsset: roundNumber(currentAsset * annualRate / 365, 8),
       estimatedDailyInterestUsd: roundNumber(currentUsd * annualRate / 365, 4),
       sourceTimestamp: new Date(item.reserve.lastUpdateTimestamp * 1000).toISOString(),
-      warnings: [
-        "Aave principal is not reconstructed in Phase 1, so accrued interest is unavailable.",
-      ],
+      warnings: [],
     };
   });
 }
