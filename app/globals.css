@@ -58,6 +58,17 @@ input {
   padding: 32px 0 80px;
 }
 
+.page-shell:has(.site-header) {
+  width: 100%;
+  padding: 0 0 80px;
+}
+
+.page-shell:has(.site-header) .content-grid {
+  width: min(1080px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding-top: 28px;
+}
+
 /* ── Hero (search section) ── */
 
 .hero {
@@ -68,28 +79,11 @@ input {
   border-radius: var(--radius);
   background: linear-gradient(135deg, rgba(255, 248, 235, 0.95), rgba(247, 238, 225, 0.84));
   box-shadow: var(--shadow);
-  transition: all var(--transition);
-}
-
-.hero.compact {
-  padding: 16px 24px;
-  gap: 0;
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
 }
 
 .hero-intro {
   display: grid;
   gap: 16px;
-  transition: all var(--transition);
-  overflow: hidden;
-}
-
-.hero.compact .hero-intro {
-  max-height: 0;
-  opacity: 0;
-  gap: 0;
-  pointer-events: none;
 }
 
 .eyebrow {
@@ -361,26 +355,113 @@ tbody td:first-child {
   font-weight: 500;
 }
 
-.protocol-row {
+.pill-link {
+  gap: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.pill-link:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* Site header (shown on results page) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 max(24px, calc((100vw - 1080px) / 2 + 16px));
+  height: 56px;
+  background: rgba(244, 240, 232, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header-logo {
+  all: unset;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
-}
-
-.protocol-link {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--brand);
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-decoration: none;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.protocol-link:hover {
+.site-header-logo:hover {
+  opacity: 0.7;
+}
+
+.site-header-form {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 480px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+
+.site-header-form:focus-within {
+  border-color: var(--brand);
+}
+
+.site-header-input {
+  flex: 1;
+  height: 100%;
+  padding: 0 14px;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 0.82rem;
+  font-family: "SF Mono", ui-monospace, monospace;
   color: var(--text);
-  text-decoration: underline;
+}
+
+.site-header-input::placeholder {
+  color: var(--muted);
+}
+
+.site-header-refresh {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: color var(--transition);
+}
+
+.site-header-refresh:hover {
+  color: var(--brand);
+}
+
+.site-header-refresh:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
 }
 
 .positive {

@@ -23,15 +23,19 @@ function getProtocolUrl(protocol: PositionRecord["protocol"]) {
   }
 }
 
-function ProtocolLink({ position }: { position: PositionRecord }) {
+function ProtocolPill({ position }: { position: PositionRecord }) {
   return (
     <a
-      className="protocol-link"
+      className="pill pill-link"
       href={getProtocolUrl(position.protocol)}
       rel="noreferrer"
       target="_blank"
     >
-      Open protocol
+      {position.protocol}
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+        <path d="M3.5 2H10V8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
     </a>
   );
 }
@@ -57,10 +61,7 @@ function PositionRow({ position }: { position: PositionRecord }) {
   return (
     <tr>
       <td>
-        <div className="stack">
-          <span className="pill">{position.protocol}</span>
-          <ProtocolLink position={position} />
-        </div>
+        <ProtocolPill position={position} />
       </td>
       <td>
         <div className="stack">
@@ -82,16 +83,6 @@ function PositionRow({ position }: { position: PositionRecord }) {
           <span className="muted">{formatTokenAmount(position.estimatedDailyInterestAsset, position.assetSymbol)}</span>
         </div>
       </td>
-      <td>
-        <span className="muted">{new Date(position.sourceTimestamp).toLocaleDateString()}</span>
-        {position.warnings.length > 0 ? (
-          <ul className="warning-list">
-            {position.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        ) : null}
-      </td>
     </tr>
   );
 }
@@ -103,10 +94,7 @@ function PositionCard({ position }: { position: PositionRecord }) {
         <div className="position-card-header-left">
           <div className="stack">
             <strong>{position.marketName}</strong>
-            <div className="protocol-row">
-              <span className="pill">{position.protocol}</span>
-              <ProtocolLink position={position} />
-            </div>
+            <ProtocolPill position={position} />
           </div>
         </div>
         <span className="muted">{position.assetSymbol}</span>
@@ -197,63 +185,103 @@ export default function HomePage() {
 
   const groups = data ? groupByChain(data.positions) : [];
 
+  function handleReset() {
+    setData(null);
+    setError(null);
+    setAddress("");
+  }
+
   return (
     <main className="page-shell">
-      <section className={`hero${hasData ? " compact" : ""}`}>
-        <div className="hero-intro">
-          <div className="stack">
-            <p className="eyebrow">LendScope</p>
-            <h1>How much are you earning?</h1>
-          </div>
-          <div className="hero-protocols">
-            <div className="hero-protocol-group">
-              <img src="/logos/aave.svg" alt="Aave" width="28" height="28" />
-              <img src="/logos/morpho.svg" alt="Morpho" width="28" height="28" />
-              <img src="/logos/compound.svg" alt="Compound" width="28" height="28" />
-            </div>
-            <span className="hero-protocols-divider" />
-            <div className="hero-protocol-group">
-              <img src="/logos/ethereum.png" alt="Ethereum" width="22" height="22" />
-              <img src="/logos/arbitrum.png" alt="Arbitrum" width="22" height="22" />
-              <img src="/logos/base.png" alt="Base" width="22" height="22" />
-              <img src="/logos/polygon.png" alt="Polygon" width="22" height="22" />
-              <img src="/logos/optimism.png" alt="Optimism" width="22" height="22" />
-            </div>
-          </div>
-        </div>
-        <form className="address-form" onSubmit={handleSubmit}>
-          <input
-            aria-label="Wallet address"
-            className="address-input"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-            placeholder="0x..."
-          />
-          <button className="submit-button" disabled={loading} type="submit">
-            {loading ? "Loading…" : hasData ? "Refresh" : "Analyze"}
+      {hasData ? (
+        <header className="site-header">
+          <button className="site-header-logo" type="button" onClick={handleReset}>
+            <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+              <path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 8H24V14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            LendScope
           </button>
-        </form>
-        {!hasData && !loading ? (
-          <button
-            className="try-example"
-            type="button"
-            onClick={() => {
-              const randomAddress =
-                EXAMPLE_ADDRESSES[Math.floor(Math.random() * EXAMPLE_ADDRESSES.length)];
-              setAddress(randomAddress);
-              // auto-submit
-              setTimeout(() => {
-                document.querySelector<HTMLFormElement>(".address-form")?.requestSubmit();
-              }, 0);
-            }}
-          >
-            <span className="try-example-icon">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 2L10.5 7L5.5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
-            Try with an example address
-          </button>
-        ) : null}
-      </section>
+          <form className="site-header-form" onSubmit={handleSubmit}>
+            <input
+              aria-label="Wallet address"
+              className="site-header-input"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              placeholder="0x..."
+            />
+            <button className="site-header-refresh" disabled={loading} type="submit">
+              {loading ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="spin">
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="28" strokeDashoffset="8" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M13.5 2.5V6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2.5 13.5V10H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3.5 6A5.5 5.5 0 0 1 13 5L13.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12.5 10A5.5 5.5 0 0 1 3 11L2.5 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+          </form>
+        </header>
+      ) : (
+        <section className="hero">
+          <div className="hero-intro">
+            <div className="stack">
+              <p className="eyebrow">LendScope</p>
+              <h1>How much are you earning?</h1>
+            </div>
+            <div className="hero-protocols">
+              <div className="hero-protocol-group">
+                <img src="/logos/aave.svg" alt="Aave" width="28" height="28" />
+                <img src="/logos/morpho.svg" alt="Morpho" width="28" height="28" />
+                <img src="/logos/compound.svg" alt="Compound" width="28" height="28" />
+              </div>
+              <span className="hero-protocols-divider" />
+              <div className="hero-protocol-group">
+                <img src="/logos/ethereum.png" alt="Ethereum" width="22" height="22" />
+                <img src="/logos/arbitrum.png" alt="Arbitrum" width="22" height="22" />
+                <img src="/logos/base.png" alt="Base" width="22" height="22" />
+                <img src="/logos/polygon.png" alt="Polygon" width="22" height="22" />
+                <img src="/logos/optimism.png" alt="Optimism" width="22" height="22" />
+              </div>
+            </div>
+          </div>
+          <form className="address-form" onSubmit={handleSubmit}>
+            <input
+              aria-label="Wallet address"
+              className="address-input"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+              placeholder="0x..."
+            />
+            <button className="submit-button" disabled={loading} type="submit">
+              {loading ? "Loading…" : "Analyze"}
+            </button>
+          </form>
+          {!loading ? (
+            <button
+              className="try-example"
+              type="button"
+              onClick={() => {
+                const randomAddress =
+                  EXAMPLE_ADDRESSES[Math.floor(Math.random() * EXAMPLE_ADDRESSES.length)];
+                setAddress(randomAddress);
+                setTimeout(() => {
+                  document.querySelector<HTMLFormElement>(".address-form")?.requestSubmit();
+                }, 0);
+              }}
+            >
+              <span className="try-example-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 2L10.5 7L5.5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+              Try with an example address
+            </button>
+          ) : null}
+        </section>
+      )}
 
       {error ? (
         <section className="content-grid">
@@ -301,14 +329,13 @@ export default function HomePage() {
                         <th>Accrued</th>
                         <th>Rate</th>
                         <th>Daily</th>
-                        <th>Updated</th>
                       </tr>
                     </thead>
                     <tbody>
                       {groups.map((group) => (
                         <Fragment key={group.chain}>
                           <tr className="chain-group-header">
-                            <td colSpan={7}>{group.chain}</td>
+                            <td colSpan={6}>{group.chain}</td>
                           </tr>
                           {group.positions.map((position) => (
                             <PositionRow key={position.marketId} position={position} />
