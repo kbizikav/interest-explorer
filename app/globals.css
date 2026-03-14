@@ -53,19 +53,21 @@ input {
 /* ── Layout ── */
 
 .page-shell {
-  width: min(1080px, calc(100vw - 32px));
-  margin: 0 auto;
-  padding: 32px 0 80px;
-}
-
-.page-shell:has(.site-header) {
   width: 100%;
   padding: 0 0 80px;
 }
 
-.page-shell:has(.site-header) .content-grid {
+.page-shell .hero,
+.page-shell .content-grid {
   width: min(1080px, calc(100vw - 32px));
   margin: 0 auto;
+}
+
+.page-shell .hero {
+  margin-top: 32px;
+}
+
+.page-shell .content-grid {
   padding-top: 28px;
 }
 
@@ -101,7 +103,7 @@ input {
   font-size: clamp(2rem, 4vw, 3.4rem);
   line-height: 1;
   letter-spacing: -0.02em;
-  max-width: 14ch;
+  max-width: 28ch;
 }
 
 /* ── Hero protocol icons ── */
@@ -116,6 +118,15 @@ input {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.hero-group-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  margin-right: 2px;
 }
 
 .hero-protocol-group img {
@@ -462,6 +473,80 @@ tbody td:first-child {
 
 .spin {
   animation: spin 0.8s linear infinite;
+}
+
+/* ── Language switcher ── */
+
+.lang-switcher {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.lang-switcher-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--secondary);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.lang-switcher-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.lang-switcher-label {
+  white-space: nowrap;
+}
+
+.lang-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 140px;
+  padding: 4px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  z-index: 200;
+}
+
+.lang-dropdown-item {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: var(--text);
+  border-radius: 10px;
+  transition: background var(--transition);
+}
+
+.lang-dropdown-item:hover {
+  background: var(--bg-accent);
+}
+
+.lang-dropdown-item.active {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* Hero top bar */
+.hero-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .positive {

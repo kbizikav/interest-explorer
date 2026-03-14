@@ -1,8 +1,10 @@
 "use client";
 
-import { FormEvent, Fragment, useState } from "react";
+import { FormEvent, Fragment, Suspense, useRef, useState } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 import { formatCompactUsd, formatPercent, formatTokenAmount } from "@/lib/format";
+import { resolveLocale, getTranslations, SUPPORTED_LOCALES, LOCALE_LABELS, type Locale, type Translations } from "@/lib/i18n";
 import type { PositionRecord, PositionsResponse } from "@/lib/types";
 
 const EXAMPLE_ADDRESSES = [
@@ -21,6 +23,60 @@ function getProtocolUrl(protocol: PositionRecord["protocol"]) {
     case "compound-v3":
       return "https://app.compound.finance/";
   }
+}
+
+function LangSwitcher({ locale }: { locale: Locale }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  function handleSelect(newLocale: Locale) {
+    setOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    if (newLocale === "en") {
+      params.delete("lang");
+    } else {
+      params.set("lang", newLocale);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
+
+  return (
+    <div className="lang-switcher" ref={ref}>
+      <button
+        className="lang-switcher-btn"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onBlur={(e) => {
+          if (!ref.current?.contains(e.relatedTarget)) setOpen(false);
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
+          <ellipse cx="8" cy="8" rx="3" ry="6.5" stroke="currentColor" strokeWidth="1.2"/>
+          <path d="M1.5 8H14.5" stroke="currentColor" strokeWidth="1.2"/>
+        </svg>
+        <span className="lang-switcher-label">{LOCALE_LABELS[locale]}</span>
+      </button>
+      {open ? (
+        <div className="lang-dropdown">
+          {SUPPORTED_LOCALES.map((loc) => (
+            <button
+              key={loc}
+              className={`lang-dropdown-item${loc === locale ? " active" : ""}`}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(loc)}
+            >
+              {LOCALE_LABELS[loc]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function ProtocolPill({ position }: { position: PositionRecord }) {
@@ -87,7 +143,7 @@ function PositionRow({ position }: { position: PositionRecord }) {
   );
 }
 
-function PositionCard({ position }: { position: PositionRecord }) {
+function PositionCard({ position, t }: { position: PositionRecord; t: Translations }) {
   return (
     <div className="position-card">
       <div className="position-card-header">
@@ -101,19 +157,19 @@ function PositionCard({ position }: { position: PositionRecord }) {
       </div>
       <div className="position-card-grid">
         <div className="position-card-field">
-          <span className="position-card-field-label">Current</span>
+          <span className="position-card-field-label">{t.thCurrent}</span>
           <span className="position-card-field-value">{formatCompactUsd(position.currentUsd)}</span>
         </div>
         <div className="position-card-field">
-          <span className="position-card-field-label">Rate</span>
+          <span className="position-card-field-label">{t.thRate}</span>
           <span className="position-card-field-value">{formatPercent(position.annualRate)}</span>
         </div>
         <div className="position-card-field">
-          <span className="position-card-field-label">Accrued</span>
+          <span className="position-card-field-label">{t.thAccrued}</span>
           <span className="position-card-field-value positive">{formatCompactUsd(position.accruedInterestUsd)}</span>
         </div>
         <div className="position-card-field">
-          <span className="position-card-field-label">Daily</span>
+          <span className="position-card-field-label">{t.thDaily}</span>
           <span className="position-card-field-value positive">{formatCompactUsd(position.estimatedDailyInterestUsd)}</span>
         </div>
       </div>
@@ -153,7 +209,11 @@ function LoadingSkeleton() {
   );
 }
 
-export default function HomePage() {
+function HomePageInner() {
+  const searchParams = useSearchParams();
+  const locale = resolveLocale(searchParams.get("lang"));
+  const t = getTranslations(locale);
+
   const [address, setAddress] = useState("");
   const [data, setData] = useState<PositionsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +260,7 @@ export default function HomePage() {
               <path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M18 8H24V14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            LendScope
+            {t.appName}
           </button>
           <form className="site-header-form" onSubmit={handleSubmit}>
             <input
@@ -225,22 +285,33 @@ export default function HomePage() {
               )}
             </button>
           </form>
+          <LangSwitcher locale={locale} />
         </header>
       ) : (
+        <>
+        <header className="site-header">
+          <span className="site-header-logo">
+            <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+              <path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 8H24V14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {t.appName}
+          </span>
+          <LangSwitcher locale={locale} />
+        </header>
         <section className="hero">
           <div className="hero-intro">
-            <div className="stack">
-              <p className="eyebrow">LendScope</p>
-              <h1>How much are you earning?</h1>
-            </div>
+            <h1>{t.heroHeadline}</h1>
             <div className="hero-protocols">
               <div className="hero-protocol-group">
+                <span className="hero-group-label">{t.protocols}</span>
                 <img src="/logos/aave.svg" alt="Aave" width="28" height="28" />
                 <img src="/logos/morpho.svg" alt="Morpho" width="28" height="28" />
                 <img src="/logos/compound.svg" alt="Compound" width="28" height="28" />
               </div>
               <span className="hero-protocols-divider" />
               <div className="hero-protocol-group">
+                <span className="hero-group-label">{t.chains}</span>
                 <img src="/logos/ethereum.png" alt="Ethereum" width="22" height="22" />
                 <img src="/logos/arbitrum.png" alt="Arbitrum" width="22" height="22" />
                 <img src="/logos/base.png" alt="Base" width="22" height="22" />
@@ -258,7 +329,7 @@ export default function HomePage() {
               placeholder="0x..."
             />
             <button className="submit-button" disabled={loading} type="submit">
-              {loading ? "Loading…" : "Analyze"}
+              {loading ? t.loading : t.analyze}
             </button>
           </form>
           {!loading ? (
@@ -277,10 +348,11 @@ export default function HomePage() {
               <span className="try-example-icon">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 2L10.5 7L5.5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </span>
-              Try with an example address
+              {t.tryExample}
             </button>
           ) : null}
         </section>
+        </>
       )}
 
       {error ? (
@@ -294,15 +366,15 @@ export default function HomePage() {
       {data && !loading ? (
         <section className="content-grid fade-in">
           <div className="summary-grid">
-            <SummaryCard label="Current Value" value={formatCompactUsd(data.totals.currentUsd)} />
-            <SummaryCard label="Principal" value={formatCompactUsd(data.totals.principalUsd)} />
+            <SummaryCard label={t.currentValue} value={formatCompactUsd(data.totals.currentUsd)} />
+            <SummaryCard label={t.principal} value={formatCompactUsd(data.totals.principalUsd)} />
             <SummaryCard
-              label="Accrued Interest"
+              label={t.accruedInterest}
               value={formatCompactUsd(data.totals.accruedInterestUsd)}
               highlight
             />
             <SummaryCard
-              label="Est. Daily Interest"
+              label={t.estDailyInterest}
               value={formatCompactUsd(data.totals.estimatedDailyInterestUsd)}
               highlight
             />
@@ -310,7 +382,7 @@ export default function HomePage() {
 
           {data.errors.length > 0 ? (
             <div className="notice">
-              Some adapters failed:{" "}
+              {t.adaptersFailed}{" "}
               {data.errors.map((item) => `${item.chain}/${item.protocol}: ${item.message}`).join(" | ")}
             </div>
           ) : null}
@@ -323,12 +395,12 @@ export default function HomePage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Protocol</th>
-                        <th>Market</th>
-                        <th>Current</th>
-                        <th>Accrued</th>
-                        <th>Rate</th>
-                        <th>Daily</th>
+                        <th>{t.thProtocol}</th>
+                        <th>{t.thMarket}</th>
+                        <th>{t.thCurrent}</th>
+                        <th>{t.thAccrued}</th>
+                        <th>{t.thRate}</th>
+                        <th>{t.thDaily}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -355,14 +427,14 @@ export default function HomePage() {
                       {group.chain}
                     </div>
                     {group.positions.map((position) => (
-                      <PositionCard key={position.marketId} position={position} />
+                      <PositionCard key={position.marketId} position={position} t={t} />
                     ))}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="notice">No supported lending positions were found for this address.</div>
+            <div className="notice">{t.noPositions}</div>
           )}
         </section>
       ) : null}
@@ -374,27 +446,35 @@ export default function HomePage() {
               <div className="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="10" cy="14" r="8" stroke="currentColor" strokeWidth="2"/><circle cx="18" cy="14" r="8" stroke="currentColor" strokeWidth="2"/></svg>
               </div>
-              <h3 className="feature-title">Cross-chain aggregation</h3>
-              <p className="feature-desc">Scan Ethereum, Arbitrum, Base, Polygon, and Optimism in a single query.</p>
+              <h3 className="feature-title">{t.featureCrossChainTitle}</h3>
+              <p className="feature-desc">{t.featureCrossChainDesc}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M4 20L10 14L16 18L24 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 8H24V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-              <h3 className="feature-title">Accrued interest tracking</h3>
-              <p className="feature-desc">Automatically calculate real-time interest earnings from on-chain principal deltas.</p>
+              <h3 className="feature-title">{t.featureInterestTitle}</h3>
+              <p className="feature-desc">{t.featureInterestDesc}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="6" width="22" height="16" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M3 12H25" stroke="currentColor" strokeWidth="2"/><circle cx="19" cy="18" r="2" fill="currentColor"/></svg>
               </div>
-              <h3 className="feature-title">Multi-protocol support</h3>
-              <p className="feature-desc">Unified view of positions across Aave v3, Morpho, and Compound v3.</p>
+              <h3 className="feature-title">{t.featureMultiTitle}</h3>
+              <p className="feature-desc">{t.featureMultiDesc}</p>
             </div>
           </div>
 
         </section>
       ) : null}
     </main>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense>
+      <HomePageInner />
+    </Suspense>
   );
 }

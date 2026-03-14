@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LendScope",
+  title: "Interest Explorer",
+  icons: { icon: "/icon" },
   description: "Cross-chain lending interest dashboard for Aave v3, Morpho, and Compound v3.",
 };
 
