@@ -549,6 +549,26 @@ tbody td:first-child {
   align-items: center;
 }
 
+/* ── Footer ── */
+
+.site-footer {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0 0;
+}
+
+.site-footer-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: color var(--transition);
+}
+
+.site-footer-link:hover {
+  color: var(--text);
+}
+
 .positive {
   color: var(--positive);
 }
