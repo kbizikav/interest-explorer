@@ -47,6 +47,12 @@ const translations = {
     featureMultiDesc: "Unified view of positions across Aave v3, Morpho, and Compound v3.",
     protocols: "3 Protocols",
     chains: "5 Chains",
+    donate: "Buy me a coffee",
+    donateTitle: "Buy me a coffee",
+    donateDesc: "Thanks for using Interest Explorer! You can support me by sending ETH or USDC to the address below.",
+    donateCopy: "Copy",
+    donateCopied: "Copied!",
+
   },
   ja: {
     appName: "Interest Explorer",
@@ -74,6 +80,12 @@ const translations = {
     featureMultiDesc: "Aave v3、Morpho、Compound v3のポジションを統合表示。",
     protocols: "3 プロトコル",
     chains: "5 チェーン",
+    donate: "コーヒーを買ってあげる",
+    donateTitle: "コーヒーを買ってあげる",
+    donateDesc: "ご利用ありがとうございます！以下のアドレスにETHまたはUSDCを送っていただけると嬉しいです。",
+    donateCopy: "コピー",
+    donateCopied: "コピーしました！",
+
   },
   zh: {
     appName: "Interest Explorer",
@@ -101,6 +113,12 @@ const translations = {
     featureMultiDesc: "统一展示 Aave v3、Morpho、Compound v3 的仓位。",
     protocols: "3 个协议",
     chains: "5 条链",
+    donate: "请我喝杯咖啡",
+    donateTitle: "请我喝杯咖啡",
+    donateDesc: "感谢使用 Interest Explorer！您可以向以下地址发送 ETH 或 USDC 来支持我。",
+    donateCopy: "复制",
+    donateCopied: "已复制！",
+
   },
   ko: {
     appName: "Interest Explorer",
@@ -128,6 +146,12 @@ const translations = {
     featureMultiDesc: "Aave v3, Morpho, Compound v3 포지션을 통합 표시.",
     protocols: "3 프로토콜",
     chains: "5 체인",
+    donate: "커피 한 잔 사주기",
+    donateTitle: "커피 한 잔 사주기",
+    donateDesc: "Interest Explorer를 이용해 주셔서 감사합니다! 아래 주소로 ETH 또는 USDC를 보내 응원해 주세요.",
+    donateCopy: "복사",
+    donateCopied: "복사됨!",
+
   },
   es: {
     appName: "Interest Explorer",
@@ -155,6 +179,12 @@ const translations = {
     featureMultiDesc: "Vista unificada de posiciones en Aave v3, Morpho y Compound v3.",
     protocols: "3 Protocolos",
     chains: "5 Cadenas",
+    donate: "Invítame un café",
+    donateTitle: "Invítame un café",
+    donateDesc: "Gracias por usar Interest Explorer! Puedes apoyarme enviando ETH o USDC a la dirección de abajo.",
+    donateCopy: "Copiar",
+    donateCopied: "¡Copiado!",
+
   },
   pt: {
     appName: "Interest Explorer",
@@ -182,6 +212,12 @@ const translations = {
     featureMultiDesc: "Visão unificada de posições em Aave v3, Morpho e Compound v3.",
     protocols: "3 Protocolos",
     chains: "5 Cadeias",
+    donate: "Me pague um café",
+    donateTitle: "Me pague um café",
+    donateDesc: "Obrigado por usar o Interest Explorer! Apoie-me enviando ETH ou USDC para o endereço abaixo.",
+    donateCopy: "Copiar",
+    donateCopied: "Copiado!",
+
   },
   fr: {
     appName: "Interest Explorer",
@@ -209,6 +245,12 @@ const translations = {
     featureMultiDesc: "Vue unifiée des positions sur Aave v3, Morpho et Compound v3.",
     protocols: "3 Protocoles",
     chains: "5 Chaînes",
+    donate: "Offrez-moi un café",
+    donateTitle: "Offrez-moi un café",
+    donateDesc: "Merci d'utiliser Interest Explorer ! Soutenez-moi en envoyant des ETH ou USDC à l'adresse ci-dessous.",
+    donateCopy: "Copier",
+    donateCopied: "Copié !",
+
   },
 } satisfies Record<Locale, Record<string, string>>;
 
